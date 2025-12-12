@@ -78,101 +78,93 @@ python "%USERPROFILE%\.claude\hooks_manager.py" list
 
 ## Usage
 
+This tool is designed to be used via the `/hooks` slash command directly within Claude Code conversations. After installation, simply type `/hooks` followed by your command.
+
 ### List Hooks
 
-```bash
-# List all hooks (auto-detects global vs project)
-python ~/.claude/hooks_manager.py list
-
-# List global hooks only
-python ~/.claude/hooks_manager.py list --global
-
-# List project hooks only
-python ~/.claude/hooks_manager.py list --project
-
-# Output as JSON
-python ~/.claude/hooks_manager.py list --json
+```
+/hooks list                    # List all hooks (auto-detects scope)
+/hooks --global list           # List global hooks only
+/hooks --project list          # List project hooks only
+/hooks --json list             # Output as JSON
 ```
 
 ### Enable/Disable Hooks
 
-```bash
-# Disable a hook by name
-python ~/.claude/hooks_manager.py disable lint
-
-# Enable a hook
-python ~/.claude/hooks_manager.py enable lint
-
-# Use Event:name format if the same name exists in multiple events
-python ~/.claude/hooks_manager.py disable PostToolUse:lint
-
-# Disable all hooks
-python ~/.claude/hooks_manager.py disable-all
-
-# Enable all hooks
-python ~/.claude/hooks_manager.py enable-all
+```
+/hooks disable lint            # Disable a hook by name
+/hooks enable lint             # Enable a hook
+/hooks disable PostToolUse:lint   # Use Event:name if name exists in multiple events
+/hooks --force disable-all     # Disable all hooks (skip confirmation)
+/hooks enable-all              # Enable all hooks
 ```
 
 ### Add Hooks
 
-```bash
-# Interactive mode
-python ~/.claude/hooks_manager.py add
-
-# Non-interactive with flags
-python ~/.claude/hooks_manager.py add \
-  --name lint \
-  --event PostToolUse \
-  --matcher "Write|Edit" \
-  --command "npm run lint" \
-  --timeout 60
+```
+/hooks add --name lint --event PostToolUse --matcher "Write|Edit" --command "npm run lint"
+/hooks add --name test --event PostToolUse --matcher Write --command "pytest" --timeout 120
+/hooks add --name format --event PostToolUse --matcher Write --command "prettier --write ."
 ```
 
 ### Remove Hooks
 
-```bash
-# Remove a single hook (with confirmation)
-python ~/.claude/hooks_manager.py remove lint
-
-# Remove without confirmation
-python ~/.claude/hooks_manager.py remove lint --force
-
-# Remove all hooks (requires confirmation)
-python ~/.claude/hooks_manager.py remove-all
+```
+/hooks --force remove lint     # Remove a hook (skip confirmation)
+/hooks --force remove-all      # Remove all hooks (skip confirmation)
 ```
 
 ### Show Hook Details
 
-```bash
-python ~/.claude/hooks_manager.py show lint
+```
+/hooks show lint               # Display details of a specific hook
 ```
 
-### Validate Settings
+### Validate & Inspect
 
-```bash
-python ~/.claude/hooks_manager.py validate
 ```
-
-### List Available Events
-
-```bash
-python ~/.claude/hooks_manager.py events
+/hooks validate                # Check settings.json for issues
+/hooks events                  # List available hook event types
 ```
 
 ### Import/Export
 
-```bash
-# Export to file
-python ~/.claude/hooks_manager.py export hooks_backup.json
-
-# Export to stdout
-python ~/.claude/hooks_manager.py export
-
-# Import from file
-python ~/.claude/hooks_manager.py import hooks_backup.json
+```
+/hooks export hooks_backup.json    # Export hooks to file
+/hooks import hooks_backup.json    # Import hooks from file
 ```
 
-## Command Line Options
+### Important: Flag Ordering
+
+Global flags (`--json`, `--force`, `--global`, etc.) must come **before** the command:
+
+```
+/hooks --json list             # Correct
+/hooks --force disable lint    # Correct
+/hooks list --json             # Will NOT work
+```
+
+---
+
+## Command Reference
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `list` | Show all hooks with status |
+| `show <name>` | Display details of specific hook |
+| `enable <name>` | Enable a disabled hook |
+| `disable <name>` | Disable an active hook |
+| `enable-all` | Enable all disabled hooks |
+| `disable-all` | Disable all active hooks |
+| `remove <name>` | Delete a hook permanently |
+| `remove-all` | Delete ALL hooks |
+| `add` | Add new hook (use flags) |
+| `validate` | Check settings.json syntax |
+| `events` | List available hook event types |
+| `export [file]` | Export hooks to JSON file |
+| `import <file>` | Import hooks from JSON file |
 
 ### Global Flags
 
@@ -187,57 +179,33 @@ python ~/.claude/hooks_manager.py import hooks_backup.json
 | `--no-backup` | Skip creating backup before modification |
 | `--force`, `-f` | Skip confirmation prompts |
 
-### Commands
+---
 
-| Command | Description |
-|---------|-------------|
-| `list` | Show all hooks with status |
-| `show <name>` | Display details of specific hook |
-| `enable <name>` | Enable a disabled hook |
-| `disable <name>` | Disable an active hook |
-| `enable-all` | Enable all disabled hooks |
-| `disable-all` | Disable all active hooks |
-| `remove <name>` | Delete a hook permanently |
-| `remove-all` | Delete ALL hooks |
-| `add` | Add new hook |
-| `validate` | Check settings.json syntax |
-| `events` | List available hook event types |
-| `export [file]` | Export hooks to JSON file |
-| `import <file>` | Import hooks from JSON file |
+## Direct CLI Usage (Under the Hood)
 
-## Slash Command Usage
+The slash command runs `python3 ~/.claude/hooks_manager.py` with your arguments. You can also run it directly from the terminal:
 
-If you installed the slash command (`commands/hooks.md`), you can use it directly within Claude Code conversations:
+```bash
+# What /hooks list runs under the hood:
+python3 ~/.claude/hooks_manager.py list
 
-### Basic Commands
-```
-/hooks list
-/hooks list --json
-/hooks events
-/hooks validate
+# What /hooks --json list runs:
+python3 ~/.claude/hooks_manager.py --json list
+
+# What /hooks --force disable lint runs:
+python3 ~/.claude/hooks_manager.py --force disable lint
+
+# What /hooks add --name lint --event PostToolUse --command "npm run lint" runs:
+python3 ~/.claude/hooks_manager.py add --name lint --event PostToolUse --command "npm run lint"
 ```
 
-### Managing Hooks
-```
-/hooks disable lint --force
-/hooks enable lint
-/hooks enable PostToolUse:lint --project
-/hooks remove slow-tests --force
-```
+### Interactive Mode (Terminal Only)
 
-### Adding Hooks via Slash Command
-Since the slash command runs non-interactively, use flags:
-```
-/hooks add --name lint --event PostToolUse --matcher "Write|Edit" --command "npm run lint"
-/hooks add --name test --event PostToolUse --matcher Write --command "pytest" --timeout 120
-```
+When running directly from a terminal (not via slash command), you can use interactive mode for adding hooks:
 
-### Important: Flag Ordering
-Global flags must come **before** the command name:
-```
-/hooks --json list           # Correct
-/hooks --force disable lint  # Correct
-/hooks list --json           # Will NOT work
+```bash
+python3 ~/.claude/hooks_manager.py add
+# Prompts for: event type, name, matcher, command, timeout
 ```
 
 ## How It Works
