@@ -99,13 +99,24 @@ This tool is designed to be used via the `/hooks` slash command directly within 
 /hooks enable-all              # Enable all hooks
 ```
 
-### Add Hooks
+### Create Hooks
+
+Use `create` (or its alias `add`) to make new hooks:
 
 ```
-/hooks add --name lint --event PostToolUse --matcher "Write|Edit" --command "npm run lint"
-/hooks add --name test --event PostToolUse --matcher Write --command "pytest" --timeout 120
-/hooks add --name format --event PostToolUse --matcher Write --command "prettier --write ."
+/hooks create --name lint --event PostToolUse --matcher "Write|Edit" --command "npm run lint"
+/hooks create --name test --event PostToolUse --matcher Write --command "pytest" --timeout 120
+/hooks create --name format --event PostToolUse --matcher Write --command "prettier --write ."
 ```
+
+**Required flags:**
+- `--name` - Hook identifier (used for enable/disable/remove)
+- `--event` - Event type (use `/hooks events` to see options)
+- `--command` - Shell command to execute
+
+**Optional flags:**
+- `--matcher` - Tool pattern to match (default: `*` matches all)
+- `--timeout` - Seconds before timeout (default: 60)
 
 ### Remove Hooks
 
@@ -154,13 +165,14 @@ Global flags (`--json`, `--force`, `--global`, etc.) must come **before** the co
 |---------|-------------|
 | `list` | Show all hooks with status |
 | `show <name>` | Display details of specific hook |
+| `create` | Create a new hook (use flags) |
+| `add` | Alias for `create` |
 | `enable <name>` | Enable a disabled hook |
 | `disable <name>` | Disable an active hook |
 | `enable-all` | Enable all disabled hooks |
 | `disable-all` | Disable all active hooks |
 | `remove <name>` | Delete a hook permanently |
 | `remove-all` | Delete ALL hooks |
-| `add` | Add new hook (use flags) |
 | `validate` | Check settings.json syntax |
 | `events` | List available hook event types |
 | `export [file]` | Export hooks to JSON file |
@@ -195,16 +207,16 @@ python3 ~/.claude/hooks_manager.py --json list
 # What /hooks --force disable lint runs:
 python3 ~/.claude/hooks_manager.py --force disable lint
 
-# What /hooks add --name lint --event PostToolUse --command "npm run lint" runs:
-python3 ~/.claude/hooks_manager.py add --name lint --event PostToolUse --command "npm run lint"
+# What /hooks create --name lint --event PostToolUse --command "npm run lint" runs:
+python3 ~/.claude/hooks_manager.py create --name lint --event PostToolUse --command "npm run lint"
 ```
 
 ### Interactive Mode (Terminal Only)
 
-When running directly from a terminal (not via slash command), you can use interactive mode for adding hooks:
+When running directly from a terminal (not via slash command), you can use interactive mode for creating hooks:
 
 ```bash
-python3 ~/.claude/hooks_manager.py add
+python3 ~/.claude/hooks_manager.py create
 # Prompts for: event type, name, matcher, command, timeout
 ```
 

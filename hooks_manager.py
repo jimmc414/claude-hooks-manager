@@ -938,8 +938,8 @@ Examples:
     # remove-all
     subparsers.add_parser('remove-all', help='Remove ALL hooks permanently (requires confirmation)')
 
-    # add
-    add_parser = subparsers.add_parser('add', help='Add a new hook (interactive or with flags)')
+    # add / create (aliases)
+    add_parser = subparsers.add_parser('add', aliases=['create'], help='Create a new hook (interactive or with flags)')
     add_parser.add_argument('--name', dest='hook_name', help='Hook name')
     add_parser.add_argument('--event', '-e', help='Event type (e.g., PostToolUse)')
     add_parser.add_argument('--matcher', '-m', default='*', help='Matcher pattern (default: *)')
@@ -981,6 +981,7 @@ def main() -> int:
         'remove': manager.cmd_remove,
         'remove-all': manager.cmd_remove_all,
         'add': manager.cmd_add,
+        'create': manager.cmd_add,  # alias for add
         'export': manager.cmd_export,
         'import': manager.cmd_import,
     }
