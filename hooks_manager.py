@@ -63,6 +63,31 @@ class HookInfo:
     raw: dict = field(default_factory=dict)
 
 
+@dataclass
+class SkillInfo:
+    """Represents a skill extension."""
+    name: str
+    description: str
+    triggers: List[str]
+    path: Path
+
+
+@dataclass
+class CommandInfo:
+    """Represents a slash command."""
+    name: str
+    description: str
+    path: Path
+
+
+@dataclass
+class ExtensionsData:
+    """Container for all Claude Code extensions."""
+    skills: List[SkillInfo] = field(default_factory=list)
+    commands: List[CommandInfo] = field(default_factory=list)
+    hooks: List[HookInfo] = field(default_factory=list)
+
+
 class HooksManager:
     """Main class for managing Claude Code hooks."""
 
