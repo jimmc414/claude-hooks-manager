@@ -79,112 +79,224 @@ python "%USERPROFILE%\.claude\hooks_manager.py" list
 
 ## Usage
 
-This tool is designed to be used via the `/hooks` slash command directly within Claude Code conversations. After installation, simply type `/hooks` followed by your command.
+This tool can be used two ways:
+1. **In Claude Code** - via the `/hooks` slash command
+2. **In Terminal** - via `python3 ~/.claude/hooks_manager.py`
+
+Each example below shows both methods side-by-side.
+
+---
 
 ### List Hooks
 
+**In Claude Code:**
 ```
-/hooks list                    # List all hooks (auto-detects scope)
-/hooks --global list           # List global hooks only
-/hooks --project list          # List project hooks only
-/hooks --json list             # Output as JSON
+/hooks list
+/hooks --global list
+/hooks --project list
+/hooks --json list
+/hooks --quiet list
 ```
+
+**In Terminal:**
+```bash
+python3 ~/.claude/hooks_manager.py list
+python3 ~/.claude/hooks_manager.py --global list
+python3 ~/.claude/hooks_manager.py --project list
+python3 ~/.claude/hooks_manager.py --json list
+python3 ~/.claude/hooks_manager.py --quiet list
+```
+
+---
 
 ### Enable/Disable Hooks
 
+**In Claude Code:**
 ```
-/hooks disable lint            # Disable a hook by name
-/hooks enable lint             # Enable a hook
-/hooks disable PostToolUse:lint   # Use Event:name if name exists in multiple events
-/hooks --force disable-all     # Disable all hooks (skip confirmation)
-/hooks enable-all              # Enable all hooks
+/hooks enable lint
+/hooks disable lint
+/hooks disable PostToolUse:lint
+/hooks enable-all
+/hooks --force disable-all
 ```
+
+**In Terminal:**
+```bash
+python3 ~/.claude/hooks_manager.py enable lint
+python3 ~/.claude/hooks_manager.py disable lint
+python3 ~/.claude/hooks_manager.py disable PostToolUse:lint
+python3 ~/.claude/hooks_manager.py enable-all
+python3 ~/.claude/hooks_manager.py --force disable-all
+```
+
+---
 
 ### Create Hooks
 
-Use `create` (or its alias `add`) to make new hooks:
-
+**In Claude Code:**
 ```
 /hooks create --name lint --event PostToolUse --matcher "Write|Edit" --command "npm run lint"
 /hooks create --name test --event PostToolUse --matcher Write --command "pytest" --timeout 120
 /hooks create --name format --event PostToolUse --matcher Write --command "prettier --write ."
+/hooks add --name notify --event Notification --matcher "*" --command "notify-send Claude"
+```
+
+**In Terminal:**
+```bash
+python3 ~/.claude/hooks_manager.py create --name lint --event PostToolUse --matcher "Write|Edit" --command "npm run lint"
+python3 ~/.claude/hooks_manager.py create --name test --event PostToolUse --matcher Write --command "pytest" --timeout 120
+python3 ~/.claude/hooks_manager.py create --name format --event PostToolUse --matcher Write --command "prettier --write ."
+python3 ~/.claude/hooks_manager.py add --name notify --event Notification --matcher "*" --command "notify-send Claude"
+
+# Interactive mode (terminal only):
+python3 ~/.claude/hooks_manager.py create
+# Prompts for: event type, name, matcher, command, timeout
 ```
 
 **Required flags:**
 - `--name` - Hook identifier (used for enable/disable/remove)
-- `--event` - Event type (use `/hooks events` to see options)
+- `--event` - Event type (use `events` command to see options)
 - `--command` - Shell command to execute
 
 **Optional flags:**
 - `--matcher` - Tool pattern to match (default: `*` matches all)
 - `--timeout` - Seconds before timeout (default: 60)
 
+---
+
 ### Remove Hooks
 
+**In Claude Code:**
 ```
-/hooks --force remove lint     # Remove a hook (skip confirmation)
-/hooks --force remove-all      # Remove all hooks (skip confirmation)
+/hooks --force remove lint
+/hooks --force remove-all
+/hooks --dry-run remove lint
 ```
+
+**In Terminal:**
+```bash
+python3 ~/.claude/hooks_manager.py --force remove lint
+python3 ~/.claude/hooks_manager.py --force remove-all
+python3 ~/.claude/hooks_manager.py --dry-run remove lint
+```
+
+---
 
 ### Show Hook Details
 
+**In Claude Code:**
 ```
-/hooks show lint               # Display details of a specific hook
+/hooks show lint
+/hooks --json show lint
 ```
+
+**In Terminal:**
+```bash
+python3 ~/.claude/hooks_manager.py show lint
+python3 ~/.claude/hooks_manager.py --json show lint
+```
+
+---
 
 ### Validate & Inspect
 
+**In Claude Code:**
 ```
-/hooks validate                # Check settings.json for issues
-/hooks events                  # List available hook event types
+/hooks validate
+/hooks --json validate
+/hooks events
+/hooks --json events
 ```
+
+**In Terminal:**
+```bash
+python3 ~/.claude/hooks_manager.py validate
+python3 ~/.claude/hooks_manager.py --json validate
+python3 ~/.claude/hooks_manager.py events
+python3 ~/.claude/hooks_manager.py --json events
+```
+
+---
 
 ### Import/Export
 
+**In Claude Code:**
 ```
-/hooks export hooks_backup.json    # Export hooks to file
-/hooks import hooks_backup.json    # Import hooks from file
+/hooks export hooks_backup.json
+/hooks export
+/hooks --force import hooks_backup.json
 ```
+
+**In Terminal:**
+```bash
+python3 ~/.claude/hooks_manager.py export hooks_backup.json
+python3 ~/.claude/hooks_manager.py export                      # outputs to stdout
+python3 ~/.claude/hooks_manager.py export > hooks_backup.json  # redirect to file
+python3 ~/.claude/hooks_manager.py --force import hooks_backup.json
+```
+
+---
 
 ### Visualize Extensions
 
-See all your Claude Code extensions (skills, commands, and hooks) in one view:
+See all your Claude Code extensions (skills, commands, and hooks) in one view.
 
+**In Claude Code:**
 ```
-/hooks visualize                   # Terminal tree view (default)
-/hooks visualize --format html     # Generate HTML report
-/hooks visualize --format markdown # Markdown tables
-/hooks visualize --format tui      # Interactive terminal UI
+/hooks visualize
+/hooks visualize --format terminal
+/hooks visualize --format html
+/hooks visualize --format markdown
+/hooks visualize --format tui
+/hooks visualize -f html -o report.html
+/hooks visualize -f markdown -o EXTENSIONS.md
+/hooks visualize --format terminal --output extensions.txt
+```
+
+**In Terminal:**
+```bash
+python3 ~/.claude/hooks_manager.py visualize
+python3 ~/.claude/hooks_manager.py visualize --format terminal
+python3 ~/.claude/hooks_manager.py visualize --format html
+python3 ~/.claude/hooks_manager.py visualize --format markdown
+python3 ~/.claude/hooks_manager.py visualize --format tui
+python3 ~/.claude/hooks_manager.py visualize -f html -o report.html
+python3 ~/.claude/hooks_manager.py visualize -f markdown -o EXTENSIONS.md
+python3 ~/.claude/hooks_manager.py visualize --format terminal --output extensions.txt
+
+# Redirect markdown to file:
+python3 ~/.claude/hooks_manager.py visualize -f markdown > EXTENSIONS.md
 ```
 
 **Output Formats:**
 
-| Format | Description | Output |
-|--------|-------------|--------|
-| `terminal` | Colored tree view | stdout |
-| `html` | Standalone HTML with dark mode | `claude-extensions.html` |
-| `markdown` | Tables for docs/reports | stdout |
-| `tui` | Interactive curses UI | interactive |
+| Format | Flag | Description | Default Output |
+|--------|------|-------------|----------------|
+| `terminal` | `-f terminal` | Colored tree view | stdout |
+| `html` | `-f html` | Standalone HTML with dark mode | `claude-extensions.html` |
+| `markdown` | `-f markdown` | Tables for docs/reports | stdout |
+| `tui` | `-f tui` | Interactive curses UI | interactive |
 
-**Options:**
-- `--output FILE` / `-o FILE` - Write to specific file (terminal/markdown/html)
-- `--format FORMAT` / `-f FORMAT` - Select output format
+**Visualize Options:**
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--format FORMAT` | `-f` | Output format (terminal/html/markdown/tui) |
+| `--output FILE` | `-o` | Write to specific file |
 
-**Examples:**
-```
-/hooks visualize -f html -o report.html    # Custom HTML filename
-/hooks visualize -f markdown -o EXTENSIONS.md  # Markdown to file
-/hooks visualize -f tui                    # Navigate with arrow keys
-```
+---
 
 ### Important: Flag Ordering
 
 Global flags (`--json`, `--force`, `--global`, etc.) must come **before** the command:
 
-```
-/hooks --json list             # Correct
-/hooks --force disable lint    # Correct
-/hooks list --json             # Will NOT work
+```bash
+# Correct:
+python3 ~/.claude/hooks_manager.py --json list
+python3 ~/.claude/hooks_manager.py --force disable lint
+python3 ~/.claude/hooks_manager.py --global --json list
+
+# Wrong (will NOT work):
+python3 ~/.claude/hooks_manager.py list --json
 ```
 
 ---
@@ -213,45 +325,18 @@ Global flags (`--json`, `--force`, `--global`, etc.) must come **before** the co
 
 ### Global Flags
 
-| Flag | Description |
-|------|-------------|
-| `--global`, `-g` | Target ~/.claude/settings.json |
-| `--project`, `-p` | Target ./.claude/settings.json |
-| `--json` | Output in JSON format |
-| `--quiet`, `-q` | Minimal output (names only) |
-| `--dry-run` | Preview changes without applying |
-| `--no-color` | Disable colored output |
-| `--no-backup` | Skip creating backup before modification |
-| `--force`, `-f` | Skip confirmation prompts |
-
----
-
-## Direct CLI Usage (Under the Hood)
-
-The slash command runs `python3 ~/.claude/hooks_manager.py` with your arguments. You can also run it directly from the terminal:
-
-```bash
-# What /hooks list runs under the hood:
-python3 ~/.claude/hooks_manager.py list
-
-# What /hooks --json list runs:
-python3 ~/.claude/hooks_manager.py --json list
-
-# What /hooks --force disable lint runs:
-python3 ~/.claude/hooks_manager.py --force disable lint
-
-# What /hooks create --name lint --event PostToolUse --command "npm run lint" runs:
-python3 ~/.claude/hooks_manager.py create --name lint --event PostToolUse --command "npm run lint"
-```
-
-### Interactive Mode (Terminal Only)
-
-When running directly from a terminal (not via slash command), you can use interactive mode for creating hooks:
-
-```bash
-python3 ~/.claude/hooks_manager.py create
-# Prompts for: event type, name, matcher, command, timeout
-```
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--global` | `-g` | Target ~/.claude/settings.json |
+| `--project` | `-p` | Target ./.claude/settings.json |
+| `--json` | | Output in JSON format |
+| `--quiet` | `-q` | Minimal output (names only) |
+| `--dry-run` | | Preview changes without applying |
+| `--no-color` | | Disable colored output |
+| `--no-backup` | | Skip creating backup before modification |
+| `--force` | `-f` | Skip confirmation prompts |
+| `--version` | | Show version number |
+| `--help` | `-h` | Show help message |
 
 ## How It Works
 
