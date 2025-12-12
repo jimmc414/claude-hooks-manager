@@ -9,6 +9,7 @@ A CLI tool to manage Claude Code hooks with enable/disable functionality without
 - **Add hooks** interactively or via command line
 - **Import/Export** hooks for backup or sharing
 - **Validate** settings.json for issues
+- **Visualize extensions** - see all skills, commands, and hooks in multiple formats
 - **Smart name resolution** - use short names when unambiguous
 - **Global and project scope** support
 - **No dependencies** - Python 3.8+ stdlib only
@@ -145,6 +146,37 @@ Use `create` (or its alias `add`) to make new hooks:
 /hooks import hooks_backup.json    # Import hooks from file
 ```
 
+### Visualize Extensions
+
+See all your Claude Code extensions (skills, commands, and hooks) in one view:
+
+```
+/hooks visualize                   # Terminal tree view (default)
+/hooks visualize --format html     # Generate HTML report
+/hooks visualize --format markdown # Markdown tables
+/hooks visualize --format tui      # Interactive terminal UI
+```
+
+**Output Formats:**
+
+| Format | Description | Output |
+|--------|-------------|--------|
+| `terminal` | Colored tree view | stdout |
+| `html` | Standalone HTML with dark mode | `claude-extensions.html` |
+| `markdown` | Tables for docs/reports | stdout |
+| `tui` | Interactive curses UI | interactive |
+
+**Options:**
+- `--output FILE` / `-o FILE` - Write to specific file (terminal/markdown/html)
+- `--format FORMAT` / `-f FORMAT` - Select output format
+
+**Examples:**
+```
+/hooks visualize -f html -o report.html    # Custom HTML filename
+/hooks visualize -f markdown -o EXTENSIONS.md  # Markdown to file
+/hooks visualize -f tui                    # Navigate with arrow keys
+```
+
 ### Important: Flag Ordering
 
 Global flags (`--json`, `--force`, `--global`, etc.) must come **before** the command:
@@ -177,6 +209,7 @@ Global flags (`--json`, `--force`, `--global`, etc.) must come **before** the co
 | `events` | List available hook event types |
 | `export [file]` | Export hooks to JSON file |
 | `import <file>` | Import hooks from JSON file |
+| `visualize` | Show all extensions (skills, commands, hooks) |
 
 ### Global Flags
 
