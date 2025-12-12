@@ -19,7 +19,7 @@ A CLI tool to manage Claude Code hooks with enable/disable functionality without
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/claude-hooks-manager.git
+git clone https://github.com/jimmc414/claude-hooks-manager.git
 cd claude-hooks-manager
 
 # Install the hooks manager
