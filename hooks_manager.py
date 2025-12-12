@@ -1039,6 +1039,36 @@ class HooksManager:
         self._success(f"Imported {count} hooks to {self.settings_path}")
         return 0
 
+    def cmd_visualize(self) -> int:
+        """Visualize all Claude Code extensions."""
+        from renderers import TerminalRenderer
+
+        scanner = ExtensionScanner(self.settings_path)
+        data = scanner.scan_all()
+
+        # Select renderer based on format
+        output_format = getattr(self.args, 'format', 'terminal')
+        if output_format == 'terminal':
+            renderer = TerminalRenderer(use_color=self.use_color)
+        else:
+            renderer = TerminalRenderer(use_color=self.use_color)
+
+        output = renderer.render(data)
+
+        # Write to file or stdout
+        output_file = getattr(self.args, 'output_file', None)
+        if output_file:
+            output_path = Path(output_file)
+            # Disable colors when writing to file
+            renderer = TerminalRenderer(use_color=False)
+            output = renderer.render(data)
+            output_path.write_text(output, encoding='utf-8')
+            self._success(f"Visualization written to {output_path}")
+        else:
+            print(output)
+
+        return 0
+
 
 def create_parser() -> argparse.ArgumentParser:
     """Create argument parser."""
@@ -1131,6 +1161,13 @@ Examples:
     import_parser = subparsers.add_parser('import', help='Import hooks from JSON file')
     import_parser.add_argument('file', help='Input JSON file')
 
+    # visualize
+    viz_parser = subparsers.add_parser('visualize', help='Visualize all Claude Code extensions')
+    viz_parser.add_argument('--format', '-f', choices=['terminal'], default='terminal',
+                           help='Output format (default: terminal)')
+    viz_parser.add_argument('--output', '-o', dest='output_file',
+                           help='Output file (stdout if not specified)')
+
     return parser
 
 
@@ -1161,6 +1198,7 @@ def main() -> int:
         'create': manager.cmd_add,  # alias for add
         'export': manager.cmd_export,
         'import': manager.cmd_import,
+        'visualize': manager.cmd_visualize,
     }
 
     handler = commands.get(args.command)
