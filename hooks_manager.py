@@ -63,6 +63,183 @@ class HookInfo:
     raw: dict = field(default_factory=dict)
 
 
+@dataclass
+class SkillInfo:
+    """Represents a skill extension."""
+    name: str
+    description: str
+    triggers: List[str]
+    path: Path
+
+
+@dataclass
+class CommandInfo:
+    """Represents a slash command."""
+    name: str
+    description: str
+    path: Path
+
+
+@dataclass
+class ExtensionsData:
+    """Container for all Claude Code extensions."""
+    skills: List[SkillInfo] = field(default_factory=list)
+    commands: List[CommandInfo] = field(default_factory=list)
+    hooks: List[HookInfo] = field(default_factory=list)
+
+
+class ExtensionScanner:
+    """Scans for Claude Code extensions (skills, commands, hooks)."""
+
+    def __init__(self, settings_path: Optional[Path] = None):
+        self.claude_dir = Path.home() / ".claude"
+        self.settings_path = settings_path or self.claude_dir / "settings.json"
+
+    def scan_skills(self) -> List[SkillInfo]:
+        """Scan ~/.claude/skills/*/SKILL.md for skill definitions."""
+        skills = []
+        skills_dir = self.claude_dir / "skills"
+
+        if not skills_dir.exists():
+            return skills
+
+        for skill_path in skills_dir.iterdir():
+            if not skill_path.is_dir():
+                continue
+
+            skill_file = skill_path / "SKILL.md"
+            if not skill_file.exists():
+                continue
+
+            name, description, triggers = self._parse_skill_file(skill_file)
+            skills.append(SkillInfo(
+                name=name or skill_path.name,
+                description=description,
+                triggers=triggers,
+                path=skill_file
+            ))
+
+        return sorted(skills, key=lambda s: s.name.lower())
+
+    def _parse_skill_file(self, skill_file: Path) -> Tuple[str, str, List[str]]:
+        """Parse SKILL.md to extract name, description, and triggers."""
+        name = ""
+        description = ""
+        triggers: List[str] = []
+
+        try:
+            content = skill_file.read_text(encoding='utf-8')
+            lines = content.split('\n')
+
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# ') and not name:
+                    name = line[2:].strip()
+                elif line.startswith('Triggers:') or line.startswith('triggers:'):
+                    trigger_text = line.split(':', 1)[1].strip()
+                    triggers = [t.strip() for t in trigger_text.split(',') if t.strip()]
+                elif not description and line and not line.startswith('#'):
+                    description = line
+
+        except Exception:
+            pass
+
+        return name, description, triggers
+
+    def scan_commands(self) -> List[CommandInfo]:
+        """Scan ~/.claude/commands/*.md for command definitions."""
+        commands = []
+        commands_dir = self.claude_dir / "commands"
+
+        if not commands_dir.exists():
+            return commands
+
+        for cmd_path in commands_dir.glob("*.md"):
+            name, description = self._parse_command_file(cmd_path)
+            commands.append(CommandInfo(
+                name=name or cmd_path.stem,
+                description=description,
+                path=cmd_path
+            ))
+
+        return sorted(commands, key=lambda c: c.name.lower())
+
+    def _parse_command_file(self, cmd_path: Path) -> Tuple[str, str]:
+        """Parse command .md file to extract name and description."""
+        name = cmd_path.stem
+        description = ""
+
+        try:
+            content = cmd_path.read_text(encoding='utf-8')
+            lines = content.split('\n')
+
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# '):
+                    name = line[2:].strip()
+                elif not description and line and not line.startswith('#'):
+                    description = line
+                    break
+
+        except Exception:
+            pass
+
+        return name, description
+
+    def scan_hooks(self) -> List[HookInfo]:
+        """Scan settings.json for hook definitions."""
+        hooks = []
+
+        if not self.settings_path.exists():
+            return hooks
+
+        try:
+            with open(self.settings_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return hooks
+
+        # Enabled hooks
+        for event, event_hooks in settings.get("hooks", {}).items():
+            if not isinstance(event_hooks, list):
+                continue
+            for idx, hook in enumerate(event_hooks):
+                name = hook.get("_name", f"{event}#{idx}")
+                hooks.append(HookInfo(
+                    name=name,
+                    event=event,
+                    enabled=True,
+                    matcher=hook.get("matcher", "*"),
+                    commands=hook.get("hooks", []),
+                    raw=hook
+                ))
+
+        # Disabled hooks
+        for event, event_hooks in settings.get("_disabled_hooks", {}).items():
+            if not isinstance(event_hooks, list):
+                continue
+            for idx, hook in enumerate(event_hooks):
+                name = hook.get("_name", f"{event}#{idx}")
+                hooks.append(HookInfo(
+                    name=name,
+                    event=event,
+                    enabled=False,
+                    matcher=hook.get("matcher", "*"),
+                    commands=hook.get("hooks", []),
+                    raw=hook
+                ))
+
+        return hooks
+
+    def scan_all(self) -> ExtensionsData:
+        """Scan for all extensions and return aggregated data."""
+        return ExtensionsData(
+            skills=self.scan_skills(),
+            commands=self.scan_commands(),
+            hooks=self.scan_hooks()
+        )
+
+
 class HooksManager:
     """Main class for managing Claude Code hooks."""
 
@@ -862,6 +1039,53 @@ class HooksManager:
         self._success(f"Imported {count} hooks to {self.settings_path}")
         return 0
 
+    def cmd_visualize(self) -> int:
+        """Visualize all Claude Code extensions."""
+        from renderers import TerminalRenderer, HTMLRenderer, MarkdownRenderer, TUIRenderer
+
+        scanner = ExtensionScanner(self.settings_path)
+        data = scanner.scan_all()
+
+        # Select renderer based on format
+        output_format = getattr(self.args, 'format', 'terminal')
+        output_file = getattr(self.args, 'output_file', None)
+
+        if output_format == 'tui':
+            # TUI is interactive, doesn't support file output
+            if output_file:
+                self._error("TUI format does not support file output")
+                return 1
+            renderer = TUIRenderer()
+            renderer.render(data)  # TUI renders directly, doesn't return string
+            return 0
+        elif output_format == 'html':
+            renderer = HTMLRenderer()
+            default_output = 'claude-extensions.html'
+        elif output_format == 'markdown':
+            renderer = MarkdownRenderer()
+            default_output = None
+        else:  # terminal
+            use_color = self.use_color and not output_file  # No colors when writing to file
+            renderer = TerminalRenderer(use_color=use_color)
+            default_output = None
+
+        output = renderer.render(data)
+
+        # Write to file or stdout
+        if output_file:
+            output_path = Path(output_file)
+            output_path.write_text(output, encoding='utf-8')
+            self._success(f"Visualization written to {output_path}")
+        elif output_format == 'html' and default_output:
+            # HTML defaults to file output
+            output_path = Path(default_output)
+            output_path.write_text(output, encoding='utf-8')
+            self._success(f"HTML report written to {output_path}")
+        else:
+            print(output)
+
+        return 0
+
 
 def create_parser() -> argparse.ArgumentParser:
     """Create argument parser."""
@@ -954,6 +1178,13 @@ Examples:
     import_parser = subparsers.add_parser('import', help='Import hooks from JSON file')
     import_parser.add_argument('file', help='Input JSON file')
 
+    # visualize
+    viz_parser = subparsers.add_parser('visualize', help='Visualize all Claude Code extensions')
+    viz_parser.add_argument('--format', '-f', choices=['terminal', 'html', 'markdown', 'tui'],
+                           default='terminal', help='Output format (default: terminal)')
+    viz_parser.add_argument('--output', '-o', dest='output_file',
+                           help='Output file (stdout if not specified)')
+
     return parser
 
 
@@ -984,6 +1215,7 @@ def main() -> int:
         'create': manager.cmd_add,  # alias for add
         'export': manager.cmd_export,
         'import': manager.cmd_import,
+        'visualize': manager.cmd_visualize,
     }
 
     handler = commands.get(args.command)
