@@ -88,6 +88,158 @@ class ExtensionsData:
     hooks: List[HookInfo] = field(default_factory=list)
 
 
+class ExtensionScanner:
+    """Scans for Claude Code extensions (skills, commands, hooks)."""
+
+    def __init__(self, settings_path: Optional[Path] = None):
+        self.claude_dir = Path.home() / ".claude"
+        self.settings_path = settings_path or self.claude_dir / "settings.json"
+
+    def scan_skills(self) -> List[SkillInfo]:
+        """Scan ~/.claude/skills/*/SKILL.md for skill definitions."""
+        skills = []
+        skills_dir = self.claude_dir / "skills"
+
+        if not skills_dir.exists():
+            return skills
+
+        for skill_path in skills_dir.iterdir():
+            if not skill_path.is_dir():
+                continue
+
+            skill_file = skill_path / "SKILL.md"
+            if not skill_file.exists():
+                continue
+
+            name, description, triggers = self._parse_skill_file(skill_file)
+            skills.append(SkillInfo(
+                name=name or skill_path.name,
+                description=description,
+                triggers=triggers,
+                path=skill_file
+            ))
+
+        return sorted(skills, key=lambda s: s.name.lower())
+
+    def _parse_skill_file(self, skill_file: Path) -> Tuple[str, str, List[str]]:
+        """Parse SKILL.md to extract name, description, and triggers."""
+        name = ""
+        description = ""
+        triggers: List[str] = []
+
+        try:
+            content = skill_file.read_text(encoding='utf-8')
+            lines = content.split('\n')
+
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# ') and not name:
+                    name = line[2:].strip()
+                elif line.startswith('Triggers:') or line.startswith('triggers:'):
+                    trigger_text = line.split(':', 1)[1].strip()
+                    triggers = [t.strip() for t in trigger_text.split(',') if t.strip()]
+                elif not description and line and not line.startswith('#'):
+                    description = line
+
+        except Exception:
+            pass
+
+        return name, description, triggers
+
+    def scan_commands(self) -> List[CommandInfo]:
+        """Scan ~/.claude/commands/*.md for command definitions."""
+        commands = []
+        commands_dir = self.claude_dir / "commands"
+
+        if not commands_dir.exists():
+            return commands
+
+        for cmd_path in commands_dir.glob("*.md"):
+            name, description = self._parse_command_file(cmd_path)
+            commands.append(CommandInfo(
+                name=name or cmd_path.stem,
+                description=description,
+                path=cmd_path
+            ))
+
+        return sorted(commands, key=lambda c: c.name.lower())
+
+    def _parse_command_file(self, cmd_path: Path) -> Tuple[str, str]:
+        """Parse command .md file to extract name and description."""
+        name = cmd_path.stem
+        description = ""
+
+        try:
+            content = cmd_path.read_text(encoding='utf-8')
+            lines = content.split('\n')
+
+            for line in lines:
+                line = line.strip()
+                if line.startswith('# '):
+                    name = line[2:].strip()
+                elif not description and line and not line.startswith('#'):
+                    description = line
+                    break
+
+        except Exception:
+            pass
+
+        return name, description
+
+    def scan_hooks(self) -> List[HookInfo]:
+        """Scan settings.json for hook definitions."""
+        hooks = []
+
+        if not self.settings_path.exists():
+            return hooks
+
+        try:
+            with open(self.settings_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return hooks
+
+        # Enabled hooks
+        for event, event_hooks in settings.get("hooks", {}).items():
+            if not isinstance(event_hooks, list):
+                continue
+            for idx, hook in enumerate(event_hooks):
+                name = hook.get("_name", f"{event}#{idx}")
+                hooks.append(HookInfo(
+                    name=name,
+                    event=event,
+                    enabled=True,
+                    matcher=hook.get("matcher", "*"),
+                    commands=hook.get("hooks", []),
+                    raw=hook
+                ))
+
+        # Disabled hooks
+        for event, event_hooks in settings.get("_disabled_hooks", {}).items():
+            if not isinstance(event_hooks, list):
+                continue
+            for idx, hook in enumerate(event_hooks):
+                name = hook.get("_name", f"{event}#{idx}")
+                hooks.append(HookInfo(
+                    name=name,
+                    event=event,
+                    enabled=False,
+                    matcher=hook.get("matcher", "*"),
+                    commands=hook.get("hooks", []),
+                    raw=hook
+                ))
+
+        return hooks
+
+    def scan_all(self) -> ExtensionsData:
+        """Scan for all extensions and return aggregated data."""
+        return ExtensionsData(
+            skills=self.scan_skills(),
+            commands=self.scan_commands(),
+            hooks=self.scan_hooks()
+        )
+
+
 class HooksManager:
     """Main class for managing Claude Code hooks."""
 
